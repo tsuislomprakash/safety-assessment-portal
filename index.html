@@ -1,0 +1,846 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Safety Competency Assessment Portal</title>
+  <!-- Bootstrap 5 CSS -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <!-- FontAwesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    :root {
+      --primary-color: #0d6efd;
+      --secondary-color: #0b5ed7;
+      --dark-color: #212529;
+      --light-bg: #f8f9fa;
+    }
+    body {
+      background-color: var(--light-bg);
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    }
+    .navbar-brand {
+      font-weight: 700;
+      letter-spacing: 0.5px;
+    }
+    .card {
+      border: none;
+      border-radius: 12px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+      transition: transform 0.2s ease-in-out;
+    }
+    .topic-card:hover {
+      transform: translateY(-5px);
+    }
+    .topic-icon {
+      font-size: 2.5rem;
+      color: var(--primary-color);
+    }
+    .btn-custom {
+      border-radius: 8px;
+      padding: 10px 24px;
+      font-weight: 600;
+    }
+    .timer-badge {
+      font-size: 1.1rem;
+      padding: 8px 16px;
+      border-radius: 20px;
+    }
+    .modal-content {
+      border-radius: 16px;
+    }
+    .hidden {
+      display: none !important;
+    }
+    .question-option {
+      cursor: pointer;
+      border: 2px solid #e9ecef;
+      border-radius: 8px;
+      padding: 12px 16px;
+      margin-bottom: 10px;
+      transition: all 0.2s;
+    }
+    .question-option:hover {
+      background-color: #e9ecef;
+    }
+    .question-option.selected {
+      border-color: #0d6efd;
+      background-color: #e7f1ff;
+    }
+    .question-option input[type="radio"] {
+      margin-right: 12px;
+    }
+    .pdf-viewer-frame {
+      width: 100%;
+      height: 75vh;
+      border: none;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Navigation Bar -->
+  <nav class="navbar navbar-expand-lg navbar-dark bg-primary sticky-top shadow-sm">
+    <div class="container">
+      <a class="navbar-brand" href="#"><i class="fas fa-shield-alt me-2"></i>Safety Assessment Portal</a>
+      <div class="d-flex align-items-center">
+        <button id="adminLoginBtn" class="btn btn-outline-light btn-sm" data-bs-toggle="modal" data-bs-target="#adminLoginModal">
+          <i class="fas fa-user-shield me-1"></i> Admin Login
+        </button>
+        <button id="adminLogoutBtn" class="btn btn-danger btn-sm hidden" onclick="adminLogout()">
+          <i class="fas fa-sign-out-alt me-1"></i> Logout Admin
+        </button>
+      </div>
+    </div>
+  </nav>
+
+  <div class="container my-4">
+
+    <!-- CANDIDATE DASHBOARD VIEW -->
+    <div id="dashboardView">
+      <div class="p-4 mb-4 bg-white rounded-3 shadow-sm border">
+        <div class="row align-items-center">
+          <div class="col-md-8">
+            <h2 class="fw-bold text-primary mb-2">सुरक्षा अध्ययन सामग्री एवं टेस्ट पोर्टल</h2>
+            <p class="text-muted mb-0">
+              टेस्ट शुरू करने से पहले नीचे दिए गए सभी 10 सुरक्षा विषयों (Topics) को ध्यानपूर्वक पढ़ें। Test me per question 1 minute milega.
+            </p>
+          </div>
+          <div class="col-md-4 text-md-end mt-3 mt-md-0">
+            <button class="btn btn-success btn-custom btn-lg shadow-sm" onclick="openTestInstructions()">
+              <i class="fas fa-pen-nib me-2"></i> Start Safety Test
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <h4 class="fw-bold mb-3 text-dark"><i class="fas fa-book me-2"></i>Study Topics (अध्ययन सामग्री)</h4>
+      <div class="row g-3" id="topicsGrid">
+        <!-- Topics dynamically loaded here -->
+      </div>
+    </div>
+
+    <!-- TEST VIEW -->
+    <div id="testView" class="hidden">
+      <div class="card p-4 mb-3 bg-white">
+        <div class="d-flex justify-content-between align-items-center border-bottom pb-3 mb-3">
+          <div>
+            <h5 class="mb-1 text-primary fw-bold" id="candidateDisplayName">Candidate: -</h5>
+            <small class="text-muted d-block" id="candidateDisplayPass">Safety Pass: -</small>
+            <small class="text-muted" id="candidateDisplayDetails">Vendor: - | Dept: -</small>
+          </div>
+          <div>
+            <span class="badge bg-warning text-dark timer-badge shadow-sm" id="testTimer">
+              <i class="fas fa-clock me-1"></i> Time Remaining: 50:00
+            </span>
+          </div>
+        </div>
+
+        <!-- Question Counter Header -->
+        <div class="d-flex justify-content-between align-items-center mb-3">
+          <span class="badge bg-secondary" id="questionCategory">Category</span>
+          <span class="fw-bold text-muted" id="questionCounter">Question 1 of 50</span>
+        </div>
+
+        <!-- Question Container -->
+        <div class="mb-4">
+          <h5 class="fw-bold text-dark mb-3" id="questionText">Question loading...</h5>
+          <div id="optionsContainer">
+            <!-- Options dynamically added -->
+          </div>
+        </div>
+
+        <!-- Navigation Buttons -->
+        <div class="d-flex justify-content-between pt-3 border-top">
+          <button class="btn btn-outline-secondary btn-custom" id="prevBtn" onclick="navigateQuestion(-1)" disabled>
+            <i class="fas fa-arrow-left me-1"></i> Previous
+          </button>
+          <button class="btn btn-primary btn-custom" id="nextBtn" onclick="navigateQuestion(1)">
+            Next <i class="fas fa-arrow-right ms-1"></i>
+          </button>
+          <button class="btn btn-success btn-custom hidden" id="submitTestBtn" onclick="confirmSubmitTest()">
+            <i class="fas fa-check-circle me-1"></i> Final Submit
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- RESULT VIEW -->
+    <div id="resultView" class="hidden">
+      <div class="card p-5 text-center bg-white shadow">
+        <div class="mb-3">
+          <i class="fas fa-award text-success display-1"></i>
+        </div>
+        <h2 class="fw-bold mb-2">Test Completed Successfully!</h2>
+        <p class="text-muted fs-5">आपका सुरक्षा मूल्यांकन जमा कर दिया गया है।</p>
+        <hr class="my-4">
+        <div class="row justify-content-center">
+          <div class="col-md-6">
+            <div class="p-3 bg-light rounded-3 mb-3">
+              <span class="d-block text-muted mb-1">Your Total Score</span>
+              <span class="display-4 fw-bold text-primary d-block mb-2" id="candidateScore">0 / 50</span>
+              <span class="badge bg-info text-dark fs-6" id="timeTakenDisplay"><i class="fas fa-stopwatch me-1"></i> Time Taken: 00:00</span>
+            </div>
+            <button class="btn btn-primary btn-custom" onclick="location.reload()">
+              <i class="fas fa-home me-2"></i> Back to Dashboard
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ADMIN DASHBOARD (RESTRICTED ACCESS) -->
+    <div id="adminDashboardView" class="hidden">
+      <div class="d-flex justify-content-between align-items-center mb-4">
+        <h3 class="fw-bold text-dark"><i class="fas fa-user-shield me-2"></i>Admin Management Dashboard</h3>
+        <button class="btn btn-success" onclick="exportCandidateResultsCSV()">
+          <i class="fas fa-file-excel me-1"></i> Export Results (CSV)
+        </button>
+      </div>
+
+      <!-- PDF STUDY MATERIAL MANAGER SECTION -->
+      <div class="card p-4 mb-4 border">
+        <h5 class="fw-bold mb-3"><i class="fas fa-file-pdf text-danger me-2"></i>PDF Study Material Manager</h5>
+        <form onsubmit="handlePdfUpload(event)">
+          <div class="row g-3 align-items-end">
+            <div class="col-md-4">
+              <label class="form-label fw-semibold">Select Topic</label>
+              <select class="form-select" id="pdfTopicSelect" required>
+                <option value="">Choose Topic...</option>
+                <!-- Populated via JavaScript -->
+              </select>
+            </div>
+            <div class="col-md-5">
+              <label class="form-label fw-semibold">Upload PDF Document</label>
+              <input type="file" class="form-control" id="pdfFileInput" accept="application/pdf" required>
+            </div>
+            <div class="col-md-3">
+              <button type="submit" class="btn btn-danger w-100 btn-custom">
+                <i class="fas fa-upload me-1"></i> Upload PDF
+              </button>
+            </div>
+          </div>
+        </form>
+        <div id="uploadStatusMessage" class="mt-2"></div>
+      </div>
+
+      <!-- CANDIDATE RESULTS TABLE SECTION (ADMIN ONLY) -->
+      <div class="card p-4 mb-4">
+        <h5 class="fw-bold mb-3"><i class="fas fa-users-cog me-2"></i>Candidate Assessment Records</h5>
+        <div class="table-responsive">
+          <table class="table table-hover align-middle" id="adminResultsTable">
+            <thead class="table-light">
+              <tr>
+                <th>Date & Time</th>
+                <th>Candidate Name</th>
+                <th>Safety Pass No.</th>
+                <th>Vendor Name</th>
+                <th>Department</th>
+                <th>Time Taken</th>
+                <th>Score</th>
+                <th>Status</th>
+                <th>Action</th>
+              </tr>
+            </thead>
+            <tbody id="adminResultsTbody">
+              <!-- Admin Data Populated Dynamically -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- PDF VIEWER MODAL -->
+  <div class="modal fade" id="pdfViewerModal" tabindex="-1">
+    <div class="modal-dialog modal-xl modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-header bg-danger text-white">
+          <h5 class="modal-title fw-bold" id="pdfViewerTitle"><i class="fas fa-file-pdf me-2"></i>Study Material</h5>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body p-0" id="pdfViewerBody">
+          <!-- Embedded PDF viewer injected here -->
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- INSTRUCTIONS & REGISTRATION MODAL -->
+  <div class="modal fade" id="instructionModal" data-bs-backdrop="static" tabindex="-1">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-header bg-warning text-dark">
+          <h5 class="modal-title fw-bold"><i class="fas fa-exclamation-triangle me-2"></i>महत्वपूर्ण निर्देश एवं चेतावनी (Warning)</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body p-4">
+          <div class="alert alert-danger d-flex align-items-center mb-3">
+            <i class="fas fa-hand-paper fa-2x me-3"></i>
+            <div>
+              <strong>सावधान / Warning:</strong> टेस्ट शुरू करने से पहले डैशबोर्ड पर उपलब्ध सभी 10 अध्ययन विषयों (PDF Material) को पढ़ना अनिवार्य है। बिना पढ़े टेस्ट शुरू न करें!
+            </div>
+          </div>
+          <ul class="mb-3 text-secondary">
+            <li>कुल प्रश्न: <strong>50 Questions</strong> (10 topics x 5 questions each)</li>
+            <li>समय सीमा: <strong>1 min per question (कुल 50 मिनट)</strong></li>
+            <li>Safety Pass Number exact <strong>12 characters</strong> का होना चाहिए।</li>
+          </ul>
+
+          <div class="form-check p-3 bg-light rounded border mb-4">
+            <input class="form-check-input ms-0 me-2" type="checkbox" id="readConfirmCheckbox" onchange="toggleProceedBtn()">
+            <label class="form-check-label fw-bold text-dark" for="readConfirmCheckbox">
+              मैंने सभी 10 अध्ययन सामग्री (PDFs) ध्यानपूर्वक पढ़ ली हैं और मैं सुरक्षा परीक्षण शुरू करने के लिए तैयार हूँ।
+            </label>
+          </div>
+
+          <form id="registrationForm" onsubmit="handleCandidateRegister(event)">
+            <div class="row g-3">
+              <div class="col-md-6">
+                <label class="form-label fw-semibold">Candidate Full Name</label>
+                <input type="text" id="candName" class="form-control" placeholder="नाम दर्ज करें" required>
+              </div>
+              <div class="col-md-6">
+                <label class="form-label fw-semibold">12-Digit Safety Pass Number</label>
+                <input type="text" id="candPass" class="form-control text-uppercase" maxlength="12" minlength="12" placeholder="12-Character Pass No." required>
+                <small class="text-muted">Must be exactly 12 alphanumeric characters.</small>
+              </div>
+              <div class="col-md-6">
+                <label class="form-label fw-semibold">Vendor Name</label>
+                <input type="text" id="candVendor" class="form-control" placeholder="वेंडर का नाम दर्ज करें" required>
+              </div>
+              <div class="col-md-6">
+                <label class="form-label fw-semibold">Department</label>
+                <input type="text" id="candDept" class="form-control" placeholder="विभाग दर्ज करें" required>
+              </div>
+              <div class="col-12 text-end mt-4">
+                <button type="submit" id="startTestBtn" class="btn btn-primary btn-custom" disabled>
+                  <i class="fas fa-play me-1"></i> Proceed & Start Test
+                </button>
+              </div>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ADMIN LOGIN MODAL -->
+  <div class="modal fade" id="adminLoginModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-header bg-dark text-white">
+          <h5 class="modal-title"><i class="fas fa-lock me-2"></i>Admin Authentication</h5>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body p-4">
+          <form onsubmit="handleAdminLogin(event)">
+            <div class="mb-3">
+              <label class="form-label fw-semibold">Username</label>
+              <input type="text" id="adminUsername" class="form-control" required autocomplete="off">
+            </div>
+            <div class="mb-3">
+              <label class="form-label fw-semibold">Password</label>
+              <input type="password" id="adminPassword" class="form-control" required autocomplete="new-password">
+            </div>
+            <button type="submit" class="btn btn-dark w-100 btn-custom mt-2">Login as Admin</button>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ADMIN ANSWER REVIEW MODAL -->
+  <div class="modal fade" id="adminReviewModal" tabindex="-1">
+    <div class="modal-dialog modal-lg modal-dialog-scrollable">
+      <div class="modal-content">
+        <div class="modal-header bg-primary text-white">
+          <h5 class="modal-title" id="adminReviewTitle">Candidate Answer Sheet</h5>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body" id="adminReviewBody">
+          <!-- Answer review content injected here -->
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Bootstrap 5 Bundle JS -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+  <script>
+    // --- 10 TOPICS DEFINITION ---
+    const topicsList = [
+      { id: 1, title: "Working at Height", icon: "fa-hard-hat" },
+      { id: 2, title: "Work Permit System", icon: "fa-file-signature" },
+      { id: 3, title: "Welding & Gas Cutting", icon: "fa-fire-burner" },
+      { id: 4, title: "Road & Rail Safety", icon: "fa-train-subway" },
+      { id: 5, title: "Personal Protective Equipment", icon: "fa-user-shield" },
+      { id: 6, title: "Positive Isolation (LOTOTO)", icon: "fa-lock" },
+      { id: 7, title: "Material Handling", icon: "fa-boxes-packing" },
+      { id: 8, title: "Fire Safety", icon: "fa-fire-extinguisher" },
+      { id: 9, title: "Excavation Safety", icon: "fa-person-digging" },
+      { id: 10, title: "Confined Space", icon: "fa-dungeon" }
+    ];
+
+    // --- QUESTION BANK (5 Questions x 10 Topics = 50 Exact Questions) ---
+    const questionBank = [
+      // 1. Working at Height
+      { topic: "Working at Height", question: "1. What is Working at Height? / ऊँचाई पर कार्य क्या है?", options: ["Work above 2 metres / 2 मीटर से अधिक ऊँचाई पर कार्य", "Work on ground / ज़मीन पर कार्य", "Indoor work / इनडोर कार्य", "Desk job / डेस्क कार्य"], answer: 0 },
+      { topic: "Working at Height", question: "2. Which harness is allowed? / कौन सा हार्नेस उपयोग करने की अनुमति है?", options: ["Single Lanyard", "Full Body Harness / फुल बॉडी हार्नेस", "Body Belt / बॉडी बेल्ट", "Rope / रस्सी"], answer: 1 },
+      { topic: "Working at Height", question: "3. Is Body Belt allowed? / क्या बॉडी बेल्ट की अनुमति है?", options: ["Yes / हाँ", "No / नहीं", "In emergency / आपातकाल में", "Optional / ऐच्छिक"], answer: 1 },
+      { topic: "Working at Height", question: "4. What is 100% Tie-Off? / 100% टाई-ऑफ क्या है?", options: ["Always connected to anchorage / हमेशा एंकरेज से जुड़ा रहना", "Disconnecting while moving / चलते समय हटाना", "Tying once / एक बार बांधना", "None of these / इनमें से कोई नहीं"], answer: 0 },
+      { topic: "Working at Height", question: "5. What is the minimum strength of an anchorage? / एंकरेज की न्यूनतम क्षमता कितनी होनी चाहिए?", options: ["500 kg per person", "1000 kg per person", "2000 kg per person / प्रति व्यक्ति 2000 किलोग्राम", "5000 kg per person"], answer: 2 },
+
+      // 2. Work Permit System
+      { topic: "Work Permit System", question: "1. What is a Work Permit? / वर्क परमिट क्या है?", options: ["Attendance sheet / उपस्थिति पत्रक", "Written authorization for safe work / सुरक्षित कार्य के लिए लिखित अनुमति", "Purchase order / खरीद आदेश", "Inspection report / निरीक्षण रिपोर्ट"], answer: 1 },
+      { topic: "Work Permit System", question: "2. 'No Permit = No Work' means: / 'वर्क परमिट नहीं = काम नहीं' का अर्थ?", options: ["Work can continue / कार्य जारी रह सकता है", "Job shall not start / कार्य शुरू नहीं होगा", "Ignore permit / परमिट को नज़रअंदाज़ करें", "Supervisor decides later / सुपरवाइजर बाद में तय करेगा"], answer: 1 },
+      { topic: "Work Permit System", question: "3. Permit Issued By: / परमिट कौन जारी करता है?", options: ["Working Agency / वर्किंग एजेंसी", "Owner Agency / ओनर एजेंसी", "Contractor / ठेकेदार", "Visitor / आगंतुक"], answer: 1 },
+      { topic: "Work Permit System", question: "4. SOP stands for: / SOP का पूर्ण रूप?", options: ["Standard Operating Procedure", "Safe Operation Permit", "Site Operation Plan", "None"], answer: 0 },
+      { topic: "Work Permit System", question: "5. Permit must be available: / वर्क परमिट कहाँ होना चाहिए?", options: ["Office / कार्यालय", "Store / स्टोर", "Work Site / कार्य स्थल", "Vehicle / वाहन"], answer: 2 },
+
+      // 3. Welding & Gas Cutting
+      { topic: "Welding & Gas Cutting", question: "1. Major hazard of welding: / वेल्डिंग का प्रमुख खतरा क्या है?", options: ["Fire / आग", "Electric Shock / बिजली का झटका", "Burns / जलना", "All of the above / उपरोक्त सभी"], answer: 3 },
+      { topic: "Welding & Gas Cutting", question: "2. Flashback arrestor is used to: / फ्लैशबैक अरेस्टर का उपयोग किसलिए होता है?", options: ["Prevent explosion / विस्फोट को रोकने के लिए", "Increase pressure / दबाव बढ़ाने के लिए", "Cool cylinder / सिलेंडर ठंडा करने के लिए", "Paint torch / टॉर्च पेंट करने के लिए"], answer: 0 },
+      { topic: "Welding & Gas Cutting", question: "3. Minimum distance between oxygen and fuel gas cylinders: / ऑक्सीजन और ईंधन गैस सिलेंडर के बीच न्यूनतम दूरी कितनी होनी चाहिए?", options: ["1 meter", "2 meter", "3 meter", "5 meter"], answer: 2 },
+      { topic: "Welding & Gas Cutting", question: "4. Fuel gas hose colour is: / फ्यूल गैस होज का रंग क्या है?", options: ["Black / काला", "Red / लाल", "Yellow / पीला", "Green / हरा"], answer: 1 },
+      { topic: "Welding & Gas Cutting", question: "5. Cylinders inside confined space are: / कन्फाइंड स्पेस में गैस सिलेंडर रखना:", options: ["Allowed / अनुमति है", "Not Allowed / अनुमति नहीं है", "Recommended / अनुशंसित", "Temporary / अस्थायी"], answer: 1 },
+
+      // 4. Road & Rail Safety
+      { topic: "Road & Rail Safety", question: "1. What is the OHE voltage present above electrified railway tracks? / विद्युतीकृत रेल लाइन के ऊपर OHE का वोल्टेज कितना होता है?", options: ["440 Volt", "11 KV", "25 KV", "33 KV"], answer: 2 },
+      { topic: "Road & Rail Safety", question: "2. Mobile phone use while driving is: / वाहन चलाते समय मोबाइल फोन का उपयोग:", options: ["Allowed / अनुमति है", "Safe / सुरक्षित", "Prohibited / प्रतिबंधित", "Recommended / अनुशंसित"], answer: 2 },
+      { topic: "Road & Rail Safety", question: "3. Three-point contact means: / थ्री-पॉइंट कॉन्टैक्ट का अर्थ क्या है?", options: ["One hand and two fingers", "Two hands and one foot or two feet and one hand / दो हाथ और एक पैर या दो पैर और एक हाथ", "One foot and one hand", "Jumping from vehicle"], answer: 1 },
+      { topic: "Road & Rail Safety", question: "4. Before moving a locomotive, how many times should the horn be blown? / लोको चलाने से पहले हॉर्न कितनी बार बजाना चाहिए?", options: ["Once / एक बार", "Twice / दो बार", "Thrice / तीन बार", "Four times / चार बार"], answer: 2 },
+      { topic: "Road & Rail Safety", question: "5. Forklift maximum permitted speed inside plant is: / प्लांट के अंदर फोर्कलिफ्ट की अधिकतम गति कितनी होनी चाहिए?", options: ["15 kmph", "10 kmph", "20 kmph", "25 kmph"], answer: 1 },
+
+      // 5. Personal Protective Equipment (PPE)
+      { topic: "Personal Protective Equipment", question: "1. PPE stands for: / PPE का पूर्ण रूप क्या है?", options: ["Personal Protective Equipment", "Personal Protection Engine", "Protective Plant Equipment", "None"], answer: 0 },
+      { topic: "Personal Protective Equipment", question: "2. PPE is: / PPE क्या है?", options: ["First line of defence / रक्षा की पहली पंक्ति", "Last line of defence / रक्षा की अंतिम पंक्ति", "Not required / आवश्यक नहीं", "Optional / ऐच्छिक"], answer: 1 },
+      { topic: "Personal Protective Equipment", question: "3. Helmet colour for contractor workers? / कॉन्ट्रैक्टर कर्मचारियों के लिए हेलमेट का रंग?", options: ["Blue / नीला", "Yellow / पीला", "Red / लाल", "Orange / नारंगी"], answer: 1 },
+      { topic: "Personal Protective Equipment", question: "4. Ear protection is required above: / किस शोर स्तर से ऊपर कान सुरक्षा आवश्यक है?", options: ["50 dB", "60 dB", "85 dB", "120 dB"], answer: 2 },
+      { topic: "Personal Protective Equipment", question: "5. Damaged PPE should be: / क्षतिग्रस्त PPE का क्या करना चाहिए?", options: ["Continue using / उपयोग जारी रखें", "Repair with tape / टेप से ठीक करें", "Replace / बदलें", "Ignore / ध्यान न दें"], answer: 2 },
+
+      // 6. Positive Isolation (LOTOTO)
+      { topic: "Positive Isolation (LOTOTO)", question: "1. What is the purpose of Positive Isolation? / पॉजिटिव आइसोलेशन का उद्देश्य क्या है?", options: ["Increase production / उत्पादन बढ़ाना", "Protect workers from unexpected energization / अप्रत्याशित ऊर्जा से श्रमिकों की सुरक्षा", "Reduce maintenance / रखरखाव कम करना", "Save time / समय बचाना"], answer: 1 },
+      { topic: "Positive Isolation (LOTOTO)", question: "2. LOTOTO stands for: / LOTOTO का अर्थ क्या है?", options: ["Lock Out Tag Out Try Out", "Load Testing", "Line Testing", "Live Operation"], answer: 0 },
+      { topic: "Positive Isolation (LOTOTO)", question: "3. Personal lock colour for Tata Steel employees: / टाटा स्टील कर्मचारियों के लिए व्यक्तिगत लॉक का रंग:", options: ["Yellow / पीला", "Blue / नीला", "Red / लाल", "Black / काला"], answer: 2 },
+      { topic: "Positive Isolation (LOTOTO)", question: "4. Personal lock colour for contractor supervisors: / कॉन्ट्रैक्टर सुपरवाइजर के लिए लॉक का रंग:", options: ["Blue / नीला", "Red / लाल", "Black / काला", "Yellow / पीला"], answer: 0 },
+      { topic: "Positive Isolation (LOTOTO)", question: "5. Who can remove a personal lock? / पर्सनल लॉक कौन हटा सकता है?", options: ["Anyone / कोई भी", "Supervisor / सुपरवाइजर", "Lock owner / लॉक का मालिक", "Contractor / ठेकेदार"], answer: 2 },
+
+      // 7. Material Handling
+      { topic: "Material Handling", question: "1. What is Material Handling? / मटेरियल हैंडलिंग क्या है?", options: ["Only lifting material / केवल भार उठाना", "Only carrying material / केवल भार ले जाना", "Lifting, lowering, pushing, pulling and carrying material / सामग्री को उठाना, नीचे रखना, धक्का देना, खींचना और ले जाना", "Crane operation only / केवल क्रेन संचालन"], answer: 2 },
+      { topic: "Material Handling", question: "2. Recommended lifting limit for a male worker under ideal conditions is: / आदर्श परिस्थितियों में पुरुष कर्मचारी के लिए भार सीमा कितनी है?", options: ["15 kg", "20 kg", "25 kg", "30 kg"], answer: 2 },
+      { topic: "Material Handling", question: "3. Which body part should mainly be used while lifting? / भार उठाते समय मुख्य रूप से किसका उपयोग करना चाहिए?", options: ["Back / कमर", "Neck / गर्दन", "Legs / पैर", "Fingers / उंगलियाँ"], answer: 2 },
+      { topic: "Material Handling", question: "4. Which method is safer for moving material? / सामग्री को एक स्थान से दूसरे स्थान तक ले जाने का अधिक सुरक्षित तरीका कौन सा है?", options: ["Pulling / खींचना", "Carrying / उठाकर ले जाना", "Pushing / धक्का देना", "Dragging / घसीटना"], answer: 2 },
+      { topic: "Material Handling", question: "5. Poor lifting practices generally cause: / गलत तरीके से भार उठाने से सामान्यतः क्या होता है?", options: ["Eye Injury / आंख की चोट", "Back Injury / कमर की चोट", "Ear Injury / कान की चोट", "Tooth Injury / दांत की चोट"], answer: 1 },
+
+      // 8. Fire Safety
+      { topic: "Fire Safety", question: "1. Fire Triangle contains: / फायर ट्रायंगल में क्या होता है?", options: ["Water / पानी", "Sand / बालू", "Fuel, Heat, Oxygen / ईंधन, गर्मी, ऑक्सीजन", "Foam / झाग"], answer: 2 },
+      { topic: "Fire Safety", question: "2. Class A fire involves: / क्लास A आग किससे संबंधित है?", options: ["Wood and Paper / लकड़ी और कागज", "Metal / धातु", "Battery / बैटरी", "Gas / गैस"], answer: 0 },
+      { topic: "Fire Safety", question: "3. Class C fire involves: / क्लास C आग किससे संबंधित है?", options: ["Electrical Fire / बिजली की आग", "Paper / कागज", "Metals / धातुएं", "Plastic / प्लास्टिक"], answer: 0 },
+      { topic: "Fire Safety", question: "4. First action during a fire: / आग लगने पर पहला कदम क्या है?", options: ["Hide / छिपना", "Raise Alarm / अलार्म बजाना", "Run / भागना", "Ignore / ध्यान न देना"], answer: 1 },
+      { topic: "Fire Safety", question: "5. Correct extinguisher for electrical fires: / विद्युत आग के लिए सही अग्निशामक कौन सा है?", options: ["Water / पानी", "Wet Chemical / वेट केमिकल", "CO2 / कार्बन डाइऑक्साइड", "Wood / लकड़ी"], answer: 2 },
+
+      // 9. Excavation Safety
+      { topic: "Excavation Safety", question: "1. Major excavation hazard is: / खुदाई का प्रमुख खतरा क्या है?", options: ["Soil collapse / मिट्टी का ढहना (Cave-in)", "Sunshine / धूप", "Noise / शोर", "Painting / पेंटिंग"], answer: 0 },
+      { topic: "Excavation Safety", question: "2. Trial trench should be excavated by: / ट्रायल ट्रेंच कैसे खोदी जानी चाहिए?", options: ["Excavator / पोकलेन", "Manual method / मैनुअल तरीका", "Bulldozer / बुलडोजर", "Crane / क्रेन"], answer: 1 },
+      { topic: "Excavation Safety", question: "3. Spoil pile should be at least: / खुदाई सामग्री कितनी दूरी पर रखनी चाहिए?", options: ["0.5 m", "1 m", "3 m", "5 m"], answer: 1 },
+      { topic: "Excavation Safety", question: "4. Barricading is: / बैरिकेडिंग क्या है?", options: ["Optional / ऐच्छिक", "Mandatory / अनिवार्य", "Decoration / सजावट", "Temporary only / केवल अस्थायी"], answer: 1 },
+      { topic: "Excavation Safety", question: "5. If underground cable is found: / यदि खुदाई के दौरान केबल मिल जाए तो क्या करें?", options: ["Continue excavation / खुदाई जारी रखें", "Stop work / काम रोकें", "Cut cable / केबल काटें", "Ignore / ध्यान न दें"], answer: 1 },
+
+      // 10. Confined Space
+      { topic: "Confined Space", question: "1. Confined Space Golden Rule is: / कन्फाइंड स्पेस का मुख्य नियम (Golden Rule) क्या है?", options: ["No Permit = No Entry / परमिट नहीं = प्रवेश नहीं", "Enter directly / सीधे प्रवेश करें", "Permit optional / परमिट ऐच्छिक है", "Ask supervisor later / सुपरवाइजर से बाद में पूछें"], answer: 0 },
+      { topic: "Confined Space", question: "2. Safe oxygen level for entry is: / प्रवेश के लिए सुरक्षित ऑक्सीजन स्तर कितना होना चाहिए?", options: ["10% - 15%", "19.5% - 23.5%", "25% - 30%", "Below 10%"], answer: 1 },
+      { topic: "Confined Space", question: "3. Maximum safe temperature inside confined space: / कन्फाइंड स्पेस के अंदर अधिकतम सुरक्षित तापमान कितना होना चाहिए?", options: ["30°C", "45°C", "60°C", "100°C"], answer: 1 },
+      { topic: "Confined Space", question: "4. Every entrant inside confined space should carry: / कन्फाइंड स्पेस में प्रवेश करने वाले प्रत्येक व्यक्ति के पास क्या होना चाहिए?", options: ["Mobile phone / मोबाइल फोन", "Personal Gas Detector / पर्सनल गैस डिटेक्टर", "Camera / कैमरा", "Food / खाना"], answer: 1 },
+      { topic: "Confined Space", question: "5. Attendant shall stay: / अटेंडेंट को कहाँ रहना चाहिए?", options: ["Inside confined space / कन्फाइंड स्पेस के अंदर", "Outside / बाहर", "In canteen / कैंटीन में", "In office / ऑफिस में"], answer: 1 }
+    ];
+
+    // --- GLOBAL VARIABLES ---
+    let currentCandidate = { name: "", pass: "", vendor: "", dept: "" };
+    let currentQuestionIndex = 0;
+    let userAnswers = new Array(questionBank.length).fill(null);
+    let timerInterval = null;
+    const totalAllocatedTimeSeconds = questionBank.length * 60; // 50 Minutes (3000 sec)
+    let remainingTimeSeconds = totalAllocatedTimeSeconds;
+
+    // --- INITIALIZATION ---
+    document.addEventListener("DOMContentLoaded", () => {
+      renderDashboardTopics();
+      populatePdfTopicDropdown();
+    });
+
+    function renderDashboardTopics() {
+      const grid = document.getElementById("topicsGrid");
+      const pdfStore = JSON.parse(localStorage.getItem("uploadedPDFs") || "{}");
+      grid.innerHTML = "";
+
+      topicsList.forEach(topic => {
+        const hasPdf = !!pdfStore[topic.id];
+        const pdfBtn = hasPdf 
+          ? `<button onclick="openPdfViewer(${topic.id})" class="btn btn-sm btn-outline-danger mt-2"><i class="fas fa-file-pdf me-1"></i> Read PDF Material</button>`
+          : `<span class="badge bg-secondary mt-2">Study Material Active</span>`;
+
+        grid.innerHTML += `
+          <div class="col-md-4 col-sm-6">
+            <div class="card topic-card p-3 h-100 border">
+              <div class="d-flex align-items-center">
+                <div class="me-3">
+                  <i class="fas ${topic.icon} topic-icon"></i>
+                </div>
+                <div>
+                  <h6 class="fw-bold mb-1 text-dark">${topic.title}</h6>
+                  ${pdfBtn}
+                </div>
+              </div>
+            </div>
+          </div>
+        `;
+      });
+    }
+
+    // SAFE PDF VIEWER IN MODAL
+    function openPdfViewer(topicId) {
+      const pdfStore = JSON.parse(localStorage.getItem("uploadedPDFs") || "{}");
+      const topic = topicsList.find(t => t.id === topicId);
+      const pdfData = pdfStore[topicId];
+
+      if (!pdfData || !pdfData.data) {
+        alert("PDF document not found!");
+        return;
+      }
+
+      document.getElementById("pdfViewerTitle").innerText = `Study Material: ${topic.title}`;
+      const container = document.getElementById("pdfViewerBody");
+      
+      container.innerHTML = `
+        <embed src="${pdfData.data}" type="application/pdf" class="pdf-viewer-frame" />
+      `;
+
+      const modal = new bootstrap.Modal(document.getElementById("pdfViewerModal"));
+      modal.show();
+    }
+
+    function populatePdfTopicDropdown() {
+      const select = document.getElementById("pdfTopicSelect");
+      select.innerHTML = `<option value="">Choose Topic...</option>`;
+      topicsList.forEach(topic => {
+        select.innerHTML += `<option value="${topic.id}">${topic.title}</option>`;
+      });
+    }
+
+    function handlePdfUpload(e) {
+      e.preventDefault();
+      const topicId = document.getElementById("pdfTopicSelect").value;
+      const fileInput = document.getElementById("pdfFileInput");
+      const file = fileInput.files[0];
+
+      if (!topicId || !file) {
+        alert("Please select a topic and a valid PDF file.");
+        return;
+      }
+
+      const reader = new FileReader();
+      reader.onload = function(evt) {
+        const pdfDataUrl = evt.target.result;
+        const pdfStore = JSON.parse(localStorage.getItem("uploadedPDFs") || "{}");
+        pdfStore[topicId] = {
+          fileName: file.name,
+          data: pdfDataUrl,
+          uploadDate: new Date().toLocaleDateString()
+        };
+        localStorage.setItem("uploadedPDFs", JSON.stringify(pdfStore));
+
+        document.getElementById("uploadStatusMessage").innerHTML = `
+          <div class="alert alert-success py-2 mb-0">
+            <i class="fas fa-check-circle me-1"></i> PDF uploaded successfully!
+          </div>
+        `;
+        fileInput.value = "";
+        renderDashboardTopics();
+      };
+      reader.readAsDataURL(file);
+    }
+
+    function toggleProceedBtn() {
+      const check = document.getElementById("readConfirmCheckbox");
+      document.getElementById("startTestBtn").disabled = !check.checked;
+    }
+
+    function openTestInstructions() {
+      document.getElementById("readConfirmCheckbox").checked = false;
+      document.getElementById("startTestBtn").disabled = true;
+      const modal = new bootstrap.Modal(document.getElementById("instructionModal"));
+      modal.show();
+    }
+
+    function handleCandidateRegister(e) {
+      e.preventDefault();
+      const name = document.getElementById("candName").value.trim();
+      const pass = document.getElementById("candPass").value.trim().toUpperCase();
+      const vendor = document.getElementById("candVendor").value.trim();
+      const dept = document.getElementById("candDept").value.trim();
+
+      if (pass.length !== 12) {
+        alert("Safety Pass Number must be exactly 12 characters!");
+        return;
+      }
+
+      // Check duplicate submission
+      const existingResults = JSON.parse(localStorage.getItem("safetyTestResults") || "[]");
+      if (existingResults.some(r => r.pass === pass)) {
+        alert("इस Safety Pass Number के साथ टेस्ट पहले ही सबमिट किया जा चुका है!");
+        return;
+      }
+
+      currentCandidate = { name, pass, vendor, dept };
+
+      // Hide modal
+      const modalEl = document.getElementById("instructionModal");
+      const modal = bootstrap.Modal.getInstance(modalEl);
+      modal.hide();
+
+      // Switch view & start test
+      document.getElementById("dashboardView").classList.add("hidden");
+      document.getElementById("testView").classList.remove("hidden");
+
+      document.getElementById("candidateDisplayName").innerText = `Candidate: ${name}`;
+      document.getElementById("candidateDisplayPass").innerText = `Safety Pass: ${pass}`;
+      document.getElementById("candidateDisplayDetails").innerText = `Vendor: ${vendor} | Dept: ${dept}`;
+
+      startTestTimer();
+      renderQuestion();
+    }
+
+    function startTestTimer() {
+      remainingTimeSeconds = totalAllocatedTimeSeconds;
+      updateTimerDisplay();
+
+      timerInterval = setInterval(() => {
+        remainingTimeSeconds--;
+        updateTimerDisplay();
+
+        if (remainingTimeSeconds <= 0) {
+          clearInterval(timerInterval);
+          alert("Time is up! Your test is being auto-submitted.");
+          submitTestFinal();
+        }
+      }, 1000);
+    }
+
+    function updateTimerDisplay() {
+      const minutes = Math.floor(remainingTimeSeconds / 60);
+      const seconds = remainingTimeSeconds % 60;
+      document.getElementById("testTimer").innerHTML = `
+        <i class="fas fa-clock me-1"></i> Time Remaining: ${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}
+      `;
+    }
+
+    function renderQuestion() {
+      const q = questionBank[currentQuestionIndex];
+      document.getElementById("questionCategory").innerText = q.topic;
+      document.getElementById("questionCounter").innerText = `Question ${currentQuestionIndex + 1} of ${questionBank.length}`;
+      document.getElementById("questionText").innerText = q.question;
+
+      const optionsDiv = document.getElementById("optionsContainer");
+      optionsDiv.innerHTML = "";
+
+      q.options.forEach((opt, idx) => {
+        const isSelected = userAnswers[currentQuestionIndex] === idx;
+        optionsDiv.innerHTML += `
+          <div class="question-option ${isSelected ? 'selected' : ''}" onclick="selectOption(${idx})">
+            <input type="radio" name="optionRadio" id="opt_${idx}" ${isSelected ? 'checked' : ''}>
+            <label for="opt_${idx}" class="mb-0 fw-semibold">${opt}</label>
+          </div>
+        `;
+      });
+
+      // Button states
+      document.getElementById("prevBtn").disabled = (currentQuestionIndex === 0);
+      if (currentQuestionIndex === questionBank.length - 1) {
+        document.getElementById("nextBtn").classList.add("hidden");
+        document.getElementById("submitTestBtn").classList.remove("hidden");
+      } else {
+        document.getElementById("nextBtn").classList.remove("hidden");
+        document.getElementById("submitTestBtn").classList.add("hidden");
+      }
+    }
+
+    function selectOption(index) {
+      userAnswers[currentQuestionIndex] = index;
+      renderQuestion();
+    }
+
+    function navigateQuestion(direction) {
+      currentQuestionIndex += direction;
+      renderQuestion();
+    }
+
+    function confirmSubmitTest() {
+      if (confirm("Are you sure you want to submit your safety test?")) {
+        submitTestFinal();
+      }
+    }
+
+    function submitTestFinal() {
+      clearInterval(timerInterval);
+
+      // Calculate time taken
+      const timeSpentSeconds = totalAllocatedTimeSeconds - remainingTimeSeconds;
+      const spentMin = Math.floor(timeSpentSeconds / 60);
+      const spentSec = timeSpentSeconds % 60;
+      const timeTakenFormatted = `${spentMin} min ${spentSec} sec`;
+
+      // Calculate score
+      let score = 0;
+      questionBank.forEach((q, idx) => {
+        if (userAnswers[idx] === q.answer) {
+          score++;
+        }
+      });
+
+      const record = {
+        name: currentCandidate.name,
+        pass: currentCandidate.pass,
+        vendor: currentCandidate.vendor,
+        dept: currentCandidate.dept,
+        score: score,
+        total: questionBank.length,
+        timeTaken: timeTakenFormatted,
+        date: new Date().toLocaleString(),
+        userAnswers: [...userAnswers]
+      };
+
+      const existingResults = JSON.parse(localStorage.getItem("safetyTestResults") || "[]");
+      existingResults.push(record);
+      localStorage.setItem("safetyTestResults", JSON.stringify(existingResults));
+
+      // Show Result View
+      document.getElementById("testView").classList.add("hidden");
+      document.getElementById("resultView").classList.remove("hidden");
+      document.getElementById("candidateScore").innerText = `${score} / ${questionBank.length}`;
+      document.getElementById("timeTakenDisplay").innerHTML = `<i class="fas fa-stopwatch me-1"></i> Time Taken: ${timeTakenFormatted}`;
+    }
+
+    // --- ADMIN LOGIC ---
+    function handleAdminLogin(e) {
+      e.preventDefault();
+      const u = document.getElementById("adminUsername").value;
+      const p = document.getElementById("adminPassword").value;
+
+      if (u === "admin" && p === "admin123") {
+        const modalEl = document.getElementById("adminLoginModal");
+        const modal = bootstrap.Modal.getInstance(modalEl);
+        modal.hide();
+
+        document.getElementById("adminLoginBtn").classList.add("hidden");
+        document.getElementById("adminLogoutBtn").classList.remove("hidden");
+
+        document.getElementById("dashboardView").classList.add("hidden");
+        document.getElementById("adminDashboardView").classList.remove("hidden");
+
+        loadAdminResultsTable();
+      } else {
+        alert("Invalid Admin Credentials!");
+      }
+    }
+
+    function adminLogout() {
+      document.getElementById("adminLoginBtn").classList.remove("hidden");
+      document.getElementById("adminLogoutBtn").classList.add("hidden");
+      document.getElementById("adminDashboardView").classList.add("hidden");
+      document.getElementById("dashboardView").classList.remove("hidden");
+    }
+
+    function loadAdminResultsTable() {
+      const results = JSON.parse(localStorage.getItem("safetyTestResults") || "[]");
+      const tbody = document.getElementById("adminResultsTbody");
+      tbody.innerHTML = "";
+
+      if (results.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="9" class="text-center text-muted">No test submissions found.</td></tr>`;
+        return;
+      }
+
+      results.forEach((r, idx) => {
+        const percentage = (r.score / r.total) * 100;
+        const statusBadge = percentage >= 70 
+          ? `<span class="badge bg-success">Passed (${percentage.toFixed(0)}%)</span>`
+          : `<span class="badge bg-danger">Failed (${percentage.toFixed(0)}%)</span>`;
+
+        tbody.innerHTML += `
+          <tr>
+            <td>${r.date}</td>
+            <td class="fw-bold">${r.name}</td>
+            <td><code>${r.pass}</code></td>
+            <td>${r.vendor || 'N/A'}</td>
+            <td>${r.dept || 'N/A'}</td>
+            <td><span class="badge bg-light text-dark border">${r.timeTaken || 'N/A'}</span></td>
+            <td class="fw-bold">${r.score} / ${r.total}</td>
+            <td>${statusBadge}</td>
+            <td>
+              <button class="btn btn-sm btn-outline-primary" onclick="viewCandidateReview(${idx})">
+                <i class="fas fa-eye me-1"></i> Review
+              </button>
+            </td>
+          </tr>
+        `;
+      });
+    }
+
+    function viewCandidateReview(index) {
+      const results = JSON.parse(localStorage.getItem("safetyTestResults") || "[]");
+      const record = results[index];
+      if (!record) return;
+
+      document.getElementById("adminReviewTitle").innerText = `Review Sheet: ${record.name} (${record.pass})`;
+      const body = document.getElementById("adminReviewBody");
+      body.innerHTML = "";
+
+      questionBank.forEach((q, idx) => {
+        const userAns = record.userAnswers[idx];
+        const isCorrect = userAns === q.answer;
+
+        body.innerHTML += `
+          <div class="card p-3 mb-2 border ${isCorrect ? 'border-success' : 'border-danger'}">
+            <h6 class="fw-bold mb-2">${idx + 1}. ${q.question}</h6>
+            <div class="small mb-1">
+              <strong>Candidate Answer:</strong> 
+              <span class="${isCorrect ? 'text-success fw-bold' : 'text-danger fw-bold'}">
+                ${userAns !== null ? q.options[userAns] : 'Not Answered'}
+              </span>
+            </div>
+            ${!isCorrect ? `<div class="small text-success"><strong>Correct Answer:</strong> ${q.options[q.answer]}</div>` : ''}
+          </div>
+        `;
+      });
+
+      const modal = new bootstrap.Modal(document.getElementById("adminReviewModal"));
+      modal.show();
+    }
+
+    function exportCandidateResultsCSV() {
+      const results = JSON.parse(localStorage.getItem("safetyTestResults") || "[]");
+      if (results.length === 0) {
+        alert("No candidate data available to export!");
+        return;
+      }
+
+      let csvContent = "data:text/csv;charset=utf-8,Date,Candidate Name,Safety Pass,Vendor Name,Department,Time Taken,Score,Total,Percentage\n";
+      results.forEach(r => {
+        const perc = ((r.score / r.total) * 100).toFixed(2);
+        csvContent += `"${r.date}","${r.name}","${r.pass}","${r.vendor || 'N/A'}","${r.dept || 'N/A'}","${r.timeTaken || 'N/A'}",${r.score},${r.total},${perc}%\n`;
+      });
+
+      const encodedUri = encodeURI(csvContent);
+      const link = document.createElement("a");
+      link.setAttribute("href", encodedUri);
+      link.setAttribute("download", `Safety_Test_Results_${new Date().toISOString().slice(0,10)}.csv`);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    }
+  </script>
+</body>
+</html>
